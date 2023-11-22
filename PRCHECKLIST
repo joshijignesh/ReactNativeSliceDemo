@@ -1,0 +1,57 @@
+# PRCHECKLIST generated online at https://mibexsoftware.bitbucket.io/checklist-buddy-editor/
+
+# Pre-Merge Checklist
++title+ Pre-Merge Checklist - Before merging, ensure you've checked the following items:
+  +task+ Link to my Jira issue.
+  +task+ PR named after my Jira issue.
+  +task+ Include screenshots for visual changes (for every theme, if applicable).
+  +task+ Spend 15 minutes refactoring during my story.
+  +task+ Verify the feature on both Android and/or iOS.
+  +task+ Complete unit tests.
+  +comment+ If your PR depends on another, provide the link in comment ( Link to the PR)
+
+# Validation for build.gradle - Android
+--files build.gradle +title+ Gradle File Review Checklist
+
+## General
+  --files build.gradle +task+ Check for the correct Gradle plugin version specified.
+  --files build.gradle +task+ Ensure proper build tools version is set.
+
+## Dependencies
+  --files build.gradle +task+ Check for the latest version of each dependency used.
+  --files build.gradle +task+ Validate that dependencies are declared in the appropriate configurations (e.g., implementation, compileOnly, testImplementation).
+  --files build.gradle +task+ Check for unused or unnecessary dependencies.
+
+## Build Configurations
+  --files build.gradle +task+ Validate the build type configurations (e.g., debug, release) and their settings (e.g., minifyEnabled, proguardFiles).
+  --files build.gradle +task+ Check for product flavors and their respective configurations.
+
+# Validation for pubspec.yaml - Flutter
+--files pubspec.yaml +title+ Validation for pubspec.yaml
+  --files pubspec.yaml +task+ Ensure all dependencies are pinned to a specific version and avoid using version ranges.
+  --files pubspec.yaml +task+ Remove any unused dependencies from pubspec.yaml.
+  --files pubspec.yaml +task+ Check for any deprecated or vulnerable packages and update them to secure versions.
+  --files pubspec.yaml +task+ Verify the inclusion of necessary dependencies and their relevance to the project.
+
+# Validation for Podfile - iOS
+--files Podfile +title+ Validation for Podfile
+  --files Podfile +task+ Ensure all CocoaPods dependencies are pinned to a specific version and avoid using version ranges.
+  --files Podfile +task+ Remove any unused CocoaPods dependencies.
+  --files Podfile +task+ Check for any deprecated or vulnerable CocoaPods and update them to secure versions.
+  --files Podfile +task+ Verify the inclusion of necessary CocoaPods and their relevance to the project.
+
+# Validation for package.json - React Native
+--files package.json +title+ Validation for package.json
+  --files package.json +task+ Ensure all dependencies are locked to a specific version (no "^" or "~" in version numbers).
+  --files package.json +task+ No unused dependencies listed.
+  --files package.json +task+ No deprecated or vulnerable packages used.
+  --files package.json +task+ Proper scripts section with relevant and helpful commands.
+  --files package.json +task+ Ensure main or start script is defined, if applicable.
+  --files package.json +task+ Valid license, description, and repository fields.
+  --files package.json +task+ Ensure there are no peer dependencies issues.
+  --files package.json +comment+ Review the engines field if specified, to ensure compatibility with Node.js versions.
+  --files package.json +comment+ Ensure development dependencies are not mistakenly added to regular dependencies.
+
+# Validation for App.tsx - React Native
+--files App.tsx +title+ Validation for App.tsx (Appcenter and Sentry)
+  --files App.tsx +task+ Ensure all appcenter codepush and sentry is enabled for running it.

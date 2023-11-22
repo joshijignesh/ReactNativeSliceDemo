@@ -1,0 +1,265 @@
+API call Example with Axios & Redux Right way
+
+# Folder Structure
+
+- Services
+    - api
+        - axios.ts
+        - axiosconfig.ts
+        - interceptor.ts
+    - API.ts 
+    - types.ts
+
+
+# Persist Redux
+const reducers = combineReducers({
+  theme,
+  auth: authenticationSlice,
+  categories: categorySlice,
+  passData: passdataSlice,
+  press: pressDataSlice,
+})
+
+const rootReducer = (state: any, action: any) => {
+  return reducers(state, action)
+}
+
+const persistConfig = {
+  key: 'root',
+  storage: AsyncStorage,
+  whitelist: ['theme', 'auth'],
+}
+
+const persistedReducer = persistReducer(persistConfig, rootReducer)
+
+const store = configureStore({
+  reducer: persistedReducer,
+  middleware: getDefaultMiddleware => {
+    const middlewares = getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
+    })
+
+    if (__DEV__ && !process.env.JEST_WORKER_ID) {
+      const createDebugger = require('redux-flipper').default
+      middlewares.push(createDebugger())
+    }
+
+    return middlewares
+  },
+})
+
+export type RootState = ReturnType<typeof store.getState>
+
+export type AppDispatch = typeof store.dispatch
+
+const persistor = persistStore(store)
+
+setupListeners(store.dispatch)
+
+export { store, persistor }
+
+# No Internet Connection View
+
+import React, { FC, memo, ReactElement, useCallback, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { ViewStyle } from 'react-native';
+import { fetch } from '@react-native-community/netinfo';
+
+import NoConnection from '../NoConnection';
+import { useDidUpdateEffect } from '../../hooks';
+import { SetIsInternetConnected } from '../../store/global-store/Actions';
+
+interface NoConnectionContainerProps {
+	children: ReactElement | ReactElement[];
+	canShowError: boolean;
+	onInternetAvailable: () => void;
+	containerStyles?: ViewStyle;
+}
+
+const NoConnectionContainer: FC<NoConnectionContainerProps> = ({
+	children,
+	canShowError,
+	onInternetAvailable,
+	containerStyles,
+}: NoConnectionContainerProps) => {
+	const dispatch = useDispatch();
+	const { isInternetConnected } = useSelector((state) => state.globalStore);
+	const wasInternetConnectedRef = useRef(isInternetConnected);
+
+	useDidUpdateEffect(() => {
+		if (wasInternetConnectedRef.current === false && isInternetConnected && canShowError) {
+			onInternetAvailable();
+		}
+
+		wasInternetConnectedRef.current = isInternetConnected;
+	}, [canShowError, isInternetConnected, onInternetAvailable]);
+
+	const retryConnection = useCallback(() => {
+		fetch().then((netState) => {
+			const connected = netState.isConnected && netState.isInternetReachable;
+
+			dispatch(SetIsInternetConnected(connected));
+		});
+	}, [dispatch]);
+
+	if (!isInternetConnected && canShowError) {
+		return <NoConnection onRetry={retryConnection} containerStyles={containerStyles} />;
+	}
+
+	return children;
+};
+
+export default memo(NoConnectionContainer);
+
+
+# UseFetch To Perform network requests
+
+
+export function useFetch(
+	query: any,
+	name: string,
+	action?: (response: any, extra?: Record<string, any>) => (dispatch: Dispatch, getState: any) => void,
+): UseFetchReturnProps {
+	const dispatch = useDispatch();
+
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [response, setResponse] = useState(null);
+	const [total, setTotal] = useState(0);
+
+	useEffect(() => {
+		return (): void => {
+			setError(null);
+		};
+	}, []);
+
+	const fetch = useCallback(
+		(variables?: Record<string, any>, extra?: Record<string, any>): Promise<void> => {
+			setLoading(true);
+			setError(null);
+			return new Promise((resolve, reject) => {
+				request(query, variables)
+					.then((data) => {
+						if (data[name].status && data[name].status != '1') {
+							setLoading(false);
+							if (
+								data[name].reasonCode === 'multiple_login' ||
+								data[name].reasonCode === '20404' ||
+								data[name].reasonCode === '60202'
+							) {
+								reject({
+									message: data[name].message,
+									reasonCode: data[name].reasonCode,
+									status: data[name].status,
+								});
+								return;
+							}
+							throw { message: data[name].message };
+						}
+
+						if (action) {
+							dispatch(action(data[name].data, extra));
+						}
+						setLoading(false);
+					})
+					.catch((error) => {
+						setLoading(false);
+						setError('Something went wrong. Please try again after sometime.');
+						reject(error.message);
+					});
+			});
+		},
+		[name, query, action, dispatch],
+	);
+
+	return { fetch, loading, error, response, total };
+}
+
+#To Prevent Button clicke when API call is going on
+const useIsButtonClicked = (apiCallLoader) => {
+	const [isButtonClicked, setIsButtonClicked] = useState(false);
+
+	useEffect(() => {
+		setIsButtonClicked(apiCallLoader);
+	}, [apiCallLoader]);
+
+	return { isButtonClicked, setIsButtonClicked };
+};
+
+export default useIsButtonClicked;
+
+
+#load Image with placeholder Animation
+
+const ImageWithPlaceHolder: FC<ImageWithPlaceHolderProps> = (props) => {
+	const animatedOpacity = useRef(new Animated.Value(0.0)).current;
+	const animatedOpacityOps = useRef(new Animated.Value(1.0)).current;
+	const [visible, setIsVisible] = useState(false);
+
+	const onLoad = () => {
+		Animated.timing(animatedOpacity, {
+			duration: 1000,
+			easing: Easing.ease,
+			useNativeDriver: true,
+			toValue: 1.0,
+		}).start();
+
+		Animated.timing(animatedOpacityOps, {
+			duration: 1000,
+			easing: Easing.ease,
+			useNativeDriver: true,
+			toValue: 0.0,
+		}).start();
+	};
+
+	const onError = () => {
+		Animated.timing(animatedOpacityOps, {
+			duration: 500,
+			easing: Easing.ease,
+			useNativeDriver: true,
+			toValue: 1.0,
+		}).start();
+	};
+
+    return (
+        <Animated.Image
+        {...props}
+        source={props.placeHolder}
+        style={[
+            styles.placeholderImage,
+            props.style,
+            { opacity: animatedOpacityOps }
+        ]}
+    />
+    )
+    
+const styles = StyleSheet.create({
+	placeholderImage: {
+		...StyleSheet.absoluteFillObject,
+		width: width,
+	},
+});
+
+export default ImageWithPlaceHolder;
+
+#Shimmer effect Placeholder 
+import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
+import LinearGradient from 'react-native-linear-gradient';
+
+
+export const ShimmerPlaceHolder = createShimmerPlaceholder(LinearGradient);
+
+<ShimmerPlaceHolder visible={isShimmerVisible} shimmerStyle={styles.packProductImageContainer}>
+				<Image
+					style={styles.packProductImageContainer}
+					source={{
+						uri: item.productDefaultImage
+							? item.productDefaultImage
+							: 'https://images.unsplash.com/photo-1568700942090-19dc36fab0c4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1050&q=80',
+					}}
+				/>
+			</ShimmerPlaceHolder>
+
+            
